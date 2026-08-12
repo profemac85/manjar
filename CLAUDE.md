@@ -61,7 +61,11 @@ deben llamarse exactamente "Manjar Sync" (lee pasos y energía activa, devuelve 
 URL `#salud={"fecha":"aaaa-MM-dd","pasos":N,"activas":N}`) y "Manjar Registrar" (escribe la
 energía consumida). La app lee el hash al cargar y en `hashchange`.
 
-**Hosting.** Para que funcione la cámara necesita HTTPS. GitHub Pages o Netlify Drop.
+**Hosting.** GitHub Pages desde el repo público github.com/profemac85/manjar (cuenta gh
+profemac85). La app vive en https://profemac85.github.io/manjar/manjar.html y el index.html
+solo redirige ahí. Deploy = commit + push; el build tarda cerca de un minuto. También hay un
+artifact privado de prueba en claude.ai (la URL está en la memoria de Claude); ahí Foto y
+Describir no funcionan porque el CSP bloquea la API.
 
 ## Lenguaje visual
 
@@ -80,10 +84,18 @@ macro.
   disponible`, mostrado como ecuación visible. A la derecha, el anillo (ver abajo). Barras de
   macros, panel de movimiento, "riel del día" (SVG con una barra por comida en su hora real,
   curva acumulada y línea de meta), y la lista de comidas con hora editable inline.
+  La vista es navegable por días: `diaVisto` con flechas junto a la fecha, tocar la fecha
+  vuelve a hoy (y en hoy abre el calendario). En otro día la fecha se pinta manjar y el
+  rótulo cambia (pasado "Quedó disponible", futuro "Planificado"). Los chips de captura
+  apuntan al día visto.
 - **CAPTURA.** Cuatro pestañas: Foto, Describir, Manual, Pegar.
 - **MOVER.** Pasos y kcal activas. Si las activas vienen vacías se estiman desde los pasos
   (aprox `0.00045 * peso` por paso).
-- **DATOS.** Promedios de 7 días, gráfico de 14 días comido contra gasto, pasos, y peso.
+- **DATOS.** Selector Semana/Mes (7 o 30 días, `perDatos`) que gobierna los KPIs y las
+  series. Panel "Macros por día": barras apiladas por aporte calórico de cada macro (la
+  lógica del anillo llevada a la serie) con resumen de promedios contra metas y reparto
+  porcentual, calculado solo sobre días con registro. Después comido contra gasto, pasos,
+  y peso.
 - **PERFIL.** Mifflin-St Jeor para BMR y TDEE, proteína 1.8 g/kg, grasa 0.8 g/kg, piso de
   1500/1200 kcal. Interruptor "sumar lo quemado a la meta" (si está activo, la actividad base
   debe quedar en Sedentaria para no contar doble). Clave de API, despensa, respaldo.

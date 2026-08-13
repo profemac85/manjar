@@ -69,9 +69,15 @@ Describir no funcionan porque el CSP bloquea la API.
 
 ## Lenguaje visual
 
-Paleta en `:root`. Fondo tinta `#0D1B1E`, acento manjar `#E0A32E`, proteína sandía `#E4576B`,
-carbo manjar, grasa agua `#5FA8B5`, verde ok `#86B04A`. Tipografía de despliegue
-Avenir Next Condensed.
+Dos temas basados en la paleta del Colegio CREE, con tokens en `:root` (CREE Día, el
+defecto) y `:root[data-tema="noche"]` (CREE Noche, interruptor en Perfil, guardado en
+`DB.tema`). Los nombres de las variables conservan su rol histórico: `--tinta` es el fondo
+(día `#F3F5FA`, noche `#0F1D33`), `--hueso` el texto (día azul marino `#1F3864`), `--manjar`
+el acento ámbar (día `#F59E1D`, noche `#FFA726`), `--sandia` proteína, `--agua` grasa
+(azules CREE), `--ok` verde. **Regla: cero colores duros fuera de los dos bloques de
+tokens**; los gráficos SVG usan `var()` en sus atributos, así el cambio de tema recolorea
+todo sin redibujar. `aplicarTema()` también actualiza el `theme-color` de la barra de
+estado. Tipografía de despliegue Avenir Next Condensed.
 
 **Decisión de diseño que hay que respetar:** no clonar la estética de los trackers
 existentes. En particular, nada de anillos tipo Apple por sí solos. El anillo que existe se

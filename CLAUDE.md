@@ -57,9 +57,15 @@ La búsqueda web (`web_search_20250305`) está activada solo en el modo Describi
 la restringe a productos de marca chilenos, porque cada búsqueda cuesta.
 
 **Apple Health.** No hay HealthKit desde la web. Se usa un puente con dos atajos de iOS que
-deben llamarse exactamente "Manjar Sync" (lee pasos y energía activa, devuelve por hash de
-URL `#salud={"fecha":"aaaa-MM-dd","pasos":N,"activas":N}`) y "Manjar Registrar" (escribe la
-energía consumida). La app lee el hash al cargar y en `hashchange`.
+deben llamarse exactamente "Manjar Sync" (lee pasos y energía activa de hoy) y
+"Manjar Registrar" (escribe la energía consumida). **El traspaso va por el portapapeles**,
+no por URL: iOS manda cualquier `https://` a Safari, y el Safari normal tiene un
+almacenamiento distinto al de la PWA instalada, así que los datos nunca llegarían. El Atajo
+copia `{"pasos":N,"activas":N}` y `pegarSalud()` lo levanta con `clipboard.readText()` desde
+un botón (iOS exige gesto del usuario). `aplicarTextoSalud()` tolera el JSON pelado o la URL
+completa. Se mantiene `leerHashSalud()` para cuando la app corre en Safari. La fecha es
+opcional: sin ella se asume hoy. Ojo: Atajos bloquea el traspaso hasta activar "Permitir
+compartir grandes cantidades de datos" en Ajustes.
 
 **Hosting.** GitHub Pages desde el repo público github.com/profemac85/manjar (cuenta gh
 profemac85). La app vive en https://profemac85.github.io/manjar/manjar.html y el index.html

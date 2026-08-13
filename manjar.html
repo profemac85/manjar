@@ -541,8 +541,9 @@ hr.sep{border:0;border-top:1px solid var(--linea);margin:22px 0}
 <section class="vista" id="v-mover">
   <div class="topbar"><h1>Movimiento</h1><div class="fecha" id="mover-fecha"></div></div>
 
-  <button class="btn" onclick="sincronizarSalud()">Traer pasos desde Salud</button>
-  <p class="pista">Ejecuta tu Atajo <b>Manjar Sync</b>, que lee pasos y energía activa de la app Salud y los devuelve a esta pantalla. Instrucciones al final.</p>
+  <button class="btn" onclick="sincronizarSalud()">1 &middot; Correr Manjar Sync</button>
+  <button class="btn fantasma" onclick="pegarSalud()">2 &middot; Traer lo que dejó Salud</button>
+  <p class="pista">El Atajo <b>Manjar Sync</b> lee pasos y energía activa y los deja en el portapapeles. Al volver acá, el segundo botón los guarda. Van separados porque iOS no deja que un Atajo entre directo a esta app.</p>
 
   <hr class="sep">
   <div class="eyebrow" style="margin-bottom:12px">O anótalo a mano</div>
@@ -683,7 +684,8 @@ hr.sep{border:0;border-top:1px solid var(--linea);margin:22px 0}
 
   <hr class="sep">
   <div class="eyebrow" style="margin-bottom:10px">Salud de Apple</div>
-  <button class="btn fantasma" onclick="sincronizarSalud()">Traer pasos y energía</button>
+  <button class="btn fantasma" onclick="sincronizarSalud()">Correr Manjar Sync</button>
+  <button class="btn fantasma" onclick="pegarSalud()">Traer lo que dejó Salud</button>
   <button class="btn fantasma" onclick="enviarASalud()">Enviar lo comido a Salud</button>
   <p class="pista" id="aviso-atajos">Requiere los Atajos <b>Manjar Sync</b> y <b>Manjar Registrar</b> en tu iPhone.</p>
 
@@ -1562,6 +1564,33 @@ function pintarMover(){
       <div class="kcal" style="color:var(--ok)">${miles(m.activas)}<small>KCAL</small></div></div>`;
   }).join("");
 }
+/* Puente con el Atajo. Dos caminos: el hash de la URL (cuando la app corre en Safari) y
+   el portapapeles (el único que llega a la PWA instalada, porque iOS manda toda URL a Safari
+   y ese Safari guarda los datos en otro almacenamiento). */
+function aplicarTextoSalud(txt){
+  const s=String(txt||"");
+  const i=s.indexOf("{"), f=s.lastIndexOf("}");
+  if(i<0||f<i)return false;
+  try{
+    const j=JSON.parse(s.slice(i,f+1));
+    const pasos=parseFloat(j.pasos)||0;
+    let act=parseFloat(j.activas);
+    if(!pasos&&(!act||isNaN(act)))return false;
+    const dia=j.fecha&&/^\d{4}-\d{2}-\d{2}$/.test(j.fecha)?j.fecha:HOY();
+    if(!act||isNaN(act)) act=estimarActivas(pasos);
+    registrarMov(dia,pasos,act);
+    aviso(miles(pasos)+" pasos guardados");
+    pintarMover(); pintarHoy();
+    return true;
+  }catch(e){return false;}
+}
+async function pegarSalud(){
+  let txt="";
+  try{ txt=await navigator.clipboard.readText(); }
+  catch(e){ aviso("Toca Permitir para leer el portapapeles"); return; }
+  if(!aplicarTextoSalud(txt)) aviso("El portapapeles no traía datos de Salud");
+}
+
 /* entrada desde el Atajo: #salud={"pasos":..,"activas":..,"fecha":".."} */
 function leerHashSalud(){
   const h=decodeURIComponent(window.location.hash||"");

@@ -26,12 +26,15 @@ se busca escribiendo su nombre en el campo "Buscar acciones" de abajo.
    - Nombre: **activas**.
 7. **Texto**
    - Pega exactamente esto:
-     `https://profemac85.github.io/manjar/manjar.html#salud={"pasos":PASOS,"activas":ACTIVAS}`
+     `{"pasos":PASOS,"activas":ACTIVAS}`
    - Ahora reemplaza la palabra `PASOS` por la variable **pasos** y `ACTIVAS` por la
      variable **activas**. Para insertarlas: borra la palabra, y con el cursor ahí toca la
      barra de variables que aparece sobre el teclado (o el botón "Seleccionar variable").
-8. **Abrir URLs**
+8. **Copiar al portapapeles**
    - Debe tomar el Texto anterior.
+   - **Importante:** no uses "Abrir URLs". iOS manda toda URL a Safari, y el Safari normal
+     guarda los datos en un almacenamiento distinto al de la app de la pantalla de inicio,
+     así que los pasos no llegarían a Manjar. Por eso el puente es el portapapeles.
 
 Finalmente toca el nombre arriba, elige **Renombrar** y escribe exactamente `Manjar Sync`.
 
@@ -43,6 +46,12 @@ Se puede omitir: si el atajo manda solo los pasos, Manjar estima las calorías a
 partir de ellos y de tu peso. Quedaría con las acciones 1, 2, 7 y 8, y el texto sería
 `https://profemac85.github.io/manjar/manjar.html#salud={"pasos":PASOS}`.
 La fecha tampoco es obligatoria: si no va en el JSON, la app usa el día de hoy.
+
+### El aviso de "112 elementos de Salud"
+
+Aparece porque cualquier dato que venga de Salud queda marcado como tal, aunque ya sea un
+número suelto. Se habilita en Ajustes, buscando "Atajos", con el interruptor **Permitir
+compartir grandes cantidades de datos**.
 
 ## Atajo 2: "Manjar Registrar" (manda lo comido a Salud)
 
@@ -62,6 +71,7 @@ app pueda pasarle el texto.
 
 ## Cómo se usan
 
-- En Manjar, pestaña MOVER, botón "Traer pasos desde Salud": abre "Manjar Sync", que vuelve
-  a la app con los datos en el hash de la URL.
+- En Manjar, pestaña MOVER: el botón **1 · Correr Manjar Sync** abre el Atajo, que deja los
+  datos en el portapapeles. Al volver a la app, el botón **2 · Traer lo que dejó Salud** los
+  guarda (la primera vez iOS pide confirmar el pegado).
 - En Perfil, "Enviar lo comido a Salud": abre "Manjar Registrar" con el resumen del día.

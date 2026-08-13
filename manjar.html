@@ -49,6 +49,10 @@ button{border:0;background:none;cursor:pointer}
 .nav-dia .fecha{padding:2px 2px}
 .nav-dia .fecha.otro-dia{color:var(--manjar);font-weight:600}
 .nav-dia .dia-oculto{position:absolute;inset:0;opacity:0;pointer-events:none;border:0}
+.nav-dia .volver-hoy{display:none;font-family:var(--display);text-transform:uppercase;
+  letter-spacing:.1em;font-size:9px;font-weight:600;color:var(--manjar);
+  border:1px solid rgba(224,163,46,.5);border-radius:99px;padding:4px 9px;margin-left:4px}
+.nav-dia .volver-hoy.ver{display:block}
 
 .panel{background:var(--carbon);border:1px solid var(--linea);border-radius:18px;padding:18px;margin-bottom:14px}
 .cifra-dia{display:flex;align-items:flex-end;gap:10px;margin:2px 0 4px}
@@ -293,6 +297,7 @@ hr.sep{border:0;border-top:1px solid var(--linea);margin:22px 0}
       <button class="flecha" onclick="moverDia(-1)" aria-label="Día anterior">&#8249;</button>
       <button class="fecha" id="hoy-fecha" onclick="tocarFecha()"></button>
       <button class="flecha" onclick="moverDia(1)" aria-label="Día siguiente">&#8250;</button>
+      <button class="volver-hoy" id="btn-hoy" onclick="volverAHoy()">hoy</button>
       <input type="date" id="hoy-dia" class="dia-oculto" onchange="saltarADia(this.value)" aria-label="Elegir día">
     </div>
   </div>
@@ -502,9 +507,9 @@ hr.sep{border:0;border-top:1px solid var(--linea);margin:22px 0}
   </div>
 
   <div class="kpis">
-    <div class="kpi"><div class="v" id="k-prom">0</div><div class="l">kcal promedio</div></div>
-    <div class="kpi"><div class="v" id="k-pasos">0</div><div class="l">pasos promedio</div></div>
-    <div class="kpi"><div class="v" id="k-bal">0</div><div class="l">balance promedio</div></div>
+    <div class="kpi"><div class="v" id="k-comido">0</div><div class="l">kcal comidas</div></div>
+    <div class="kpi"><div class="v" id="k-quema">0</div><div class="l">kcal quemadas</div></div>
+    <div class="kpi"><div class="v" id="k-bal">0</div><div class="l">balance total</div></div>
   </div>
 
   <div class="panel">
@@ -535,6 +540,7 @@ hr.sep{border:0;border-top:1px solid var(--linea);margin:22px 0}
     <div class="riel-cab"><div class="eyebrow">Peso corporal</div>
       <button class="eyebrow" style="color:var(--manjar)" onclick="abrirPeso()">Registrar</button></div>
     <div id="peso-form" style="display:none;margin-bottom:14px">
+      <input class="txt mono" id="peso-fecha" type="date" style="margin-bottom:9px" aria-label="Fecha del peso">
       <div style="display:flex;gap:9px">
         <input class="txt mono" id="peso-input" type="number" inputmode="decimal" step="0.1" placeholder="kg">
         <button class="btn" style="flex:0 0 108px;padding:12px" onclick="guardarPeso()">Guardar</button>
@@ -688,10 +694,10 @@ function desplazarDia(dia,delta){
 function moverDia(delta){ diaVisto=desplazarDia(diaVisto,delta); pintarHoy(); }
 function saltarADia(v){ if(/^\d{4}-\d{2}-\d{2}$/.test(v||"")){ diaVisto=v; pintarHoy(); } }
 function tocarFecha(){
-  if(diaVisto!==HOY()){ diaVisto=HOY(); pintarHoy(); return; }
   const inp=$("hoy-dia"); inp.value=diaVisto;
   try{ inp.showPicker(); }catch(e){ inp.focus(); }
 }
+function volverAHoy(){ diaVisto=HOY(); pintarHoy(); }
 function etiquetaDia(){
   const hoy=HOY();
   if(diaVisto===hoy) return fechaLarga();
@@ -787,6 +793,7 @@ function pintarHoy(){
   const enHoy=diaVisto===HOY(), pasado=diaVisto<HOY();
   $("hoy-fecha").textContent=etiquetaDia();
   $("hoy-fecha").classList.toggle("otro-dia",!enHoy);
+  $("btn-hoy").classList.toggle("ver",!enHoy);
   $("hoy-eyebrow").textContent = enHoy ? "Disponible hoy" : (pasado ? "Quedó disponible" : "Planificado");
   $("lista-tit").textContent = enHoy ? "Comidas de hoy" : "Comidas de "+etiquetaDia();
   const M=metas(), cs=comidasDe(diaVisto), t=suma(cs), mv=movDe(diaVisto);
@@ -1423,14 +1430,13 @@ function pintarDatos(){
   const salto = perDatos>14 ? 5 : 2;   // cada cuántos días va etiqueta de fecha
   $("datos-rango").textContent="últimos "+perDatos+" días";
   const con=dias.filter(x=>x.kcal>0);
-  const conP=dias.filter(x=>x.pasos>0);
-  $("k-prom").textContent = con.length ? miles(con.reduce((a,x)=>a+x.kcal,0)/con.length) : "0";
-  $("k-pasos").textContent = conP.length ? miles(conP.reduce((a,x)=>a+x.pasos,0)/conP.length) : "0";
-  // balance = comido menos gasto total estimado (base + activas)
-  const bals=con.map(x=>x.kcal-(M.tdee+x.activas));
-  const prom=bals.length?bals.reduce((a,b)=>a+b,0)/bals.length:0;
-  $("k-bal").textContent=(prom>0?"+":"")+miles(prom);
-  $("k-bal").style.color = prom>0 ? "var(--sandia)" : "var(--ok)";
+  // KPIs en totales del período; los promedios se leen abajo en las barras
+  $("k-comido").textContent = miles(dias.reduce((a,x)=>a+x.kcal,0));
+  $("k-quema").textContent = miles(dias.reduce((a,x)=>a+x.activas,0));
+  // balance = comido menos gasto total estimado (base + activas), solo días con registro
+  const bal=con.reduce((a,x)=>a+(x.kcal-(M.tdee+x.activas)),0);
+  $("k-bal").textContent=(bal>0?"+":"")+miles(bal);
+  $("k-bal").style.color = bal>0 ? "var(--sandia)" : "var(--ok)";
 
   pintarMacros(dias,M,salto);
 
@@ -1533,13 +1539,18 @@ function dibujarPeso(){
 function abrirPeso(){
   const f=$("peso-form");
   f.style.display = f.style.display==="none" ? "" : "none";
-  if(f.style.display===""){ $("peso-input").value=""; $("peso-input").focus(); }
+  if(f.style.display===""){ $("peso-fecha").value=HOY(); $("peso-input").value=""; $("peso-input").focus(); }
 }
 function guardarPeso(){
   const kg=parseFloat(String($("peso-input").value).replace(",","."));
   if(!kg||kg<25||kg>300){aviso("Peso no válido");return;}
-  DB.pesos.push({ts:Date.now(),kg});
-  if(DB.perfil){DB.perfil.peso=kg;DB.perfil.metas=calcularMetas(DB.perfil);}
+  const dia=/^\d{4}-\d{2}-\d{2}$/.test($("peso-fecha").value)?$("peso-fecha").value:HOY();
+  // un peso por día: si ya había uno ese día, se reemplaza
+  DB.pesos=DB.pesos.filter(x=>diaDe(x.ts)!==dia);
+  DB.pesos.push({ts:new Date(dia+"T12:00:00").getTime(),kg});
+  // el peso del perfil solo cambia si este registro es el más reciente
+  const ultimo=DB.pesos.slice().sort((a,b)=>a.ts-b.ts).pop();
+  if(DB.perfil&&ultimo&&diaDe(ultimo.ts)===dia){DB.perfil.peso=kg;DB.perfil.metas=calcularMetas(DB.perfil);}
   grabar(); $("peso-form").style.display="none"; pintarDatos(); aviso("Peso registrado");
 }
 

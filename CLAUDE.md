@@ -85,17 +85,19 @@ macro.
   macros, panel de movimiento, "riel del día" (SVG con una barra por comida en su hora real,
   curva acumulada y línea de meta), y la lista de comidas con hora editable inline.
   La vista es navegable por días: `diaVisto` con flechas junto a la fecha, tocar la fecha
-  vuelve a hoy (y en hoy abre el calendario). En otro día la fecha se pinta manjar y el
-  rótulo cambia (pasado "Quedó disponible", futuro "Planificado"). Los chips de captura
-  apuntan al día visto.
+  abre el calendario nativo, y un pill "hoy" (visible solo en otro día) vuelve de un toque.
+  En otro día la fecha se pinta manjar y el rótulo cambia (pasado "Quedó disponible",
+  futuro "Planificado"). Los chips de captura apuntan al día visto.
 - **CAPTURA.** Cuatro pestañas: Foto, Describir, Manual, Pegar.
 - **MOVER.** Pasos y kcal activas. Si las activas vienen vacías se estiman desde los pasos
   (aprox `0.00045 * peso` por paso).
 - **DATOS.** Selector Semana/Mes (7 o 30 días, `perDatos`) que gobierna los KPIs y las
-  series. Panel "Macros por día": barras apiladas por aporte calórico de cada macro (la
-  lógica del anillo llevada a la serie) con resumen de promedios contra metas y reparto
-  porcentual, calculado solo sobre días con registro. Después comido contra gasto, pasos,
-  y peso.
+  series. Los KPIs son TOTALES del período (comido, quemado, balance; los promedios se leen
+  en las barras), y el balance solo suma días con registro. Panel "Macros por día": barras
+  apiladas por aporte calórico de cada macro (la lógica del anillo llevada a la serie) con
+  resumen de promedios contra metas y reparto porcentual, calculado solo sobre días con
+  registro. Después comido contra gasto, pasos, y peso. El peso se registra con fecha
+  (un peso por día, reemplaza; solo el más reciente toca el perfil y las metas).
 - **PERFIL.** Mifflin-St Jeor para BMR y TDEE, proteína 1.8 g/kg, grasa 0.8 g/kg, piso de
   1500/1200 kcal. Interruptor "sumar lo quemado a la meta" (si está activo, la actividad base
   debe quedar en Sedentaria para no contar doble). Clave de API, despensa, respaldo.

@@ -88,18 +88,29 @@ macro.
   abre el calendario nativo, y un pill "hoy" (visible solo en otro día) vuelve de un toque.
   En otro día la fecha se pinta manjar y el rótulo cambia (pasado "Quedó disponible",
   futuro "Planificado"). Los chips de captura apuntan al día visto.
-- **CAPTURA.** Cuatro pestañas: Foto, Describir, Manual, Pegar.
+  La lista de comidas va agrupada por Desayuno (<11:30), Almuerzo (<16:00), Once (<19:45) y
+  Cena, con subtotal por grupo, y es editable inline: gramos (reescala kcal y macros en
+  proporción) y botones − + que suman o restan una porción. La porción oficial de un
+  producto son los gramos guardados en su despensa (`porcionDe()`).
+- **CAPTURA.** Cuatro pestañas: Foto, Describir, Manual, Pegar. Manual lleva arriba un
+  buscador de despensa que llena el formulario con la porción habitual. En el desglose
+  editable, `cambiarGramos` actualiza la línea SIN redibujar la lista (`refrescarLinea`):
+  si se reconstruye el input mientras se escribe, se pierde el foco a cada dígito.
 - **MOVER.** Pasos y kcal activas. Si las activas vienen vacías se estiman desde los pasos
   (aprox `0.00045 * peso` por paso).
-- **DATOS.** Selector Semana/Mes (7 o 30 días, `perDatos`) que gobierna los KPIs y las
-  series. Los KPIs son TOTALES del período (comido, quemado, balance; los promedios se leen
+- **DATOS.** Selector Semana/Mes (7 o 30 días, `perDatos`) y ventana navegable por fechas
+  (`finDatos`: flechas mueven de a `perDatos` días, tocar la fecha abre el calendario, pill
+  "hoy" vuelve). Arriba, panel de racha: días seguidos con registro y sin pasarse del tope
+  (hoy sin registro no corta, hoy pasado la deja en 0; puntos de los últimos 7 días). La
+  racha es siempre la actual, no depende de la ventana. Los KPIs son TOTALES del período (comido, quemado, balance; los promedios se leen
   en las barras), y el balance solo suma días con registro. Panel "Macros por día": barras
   apiladas por aporte calórico de cada macro (la lógica del anillo llevada a la serie) con
   resumen de promedios contra metas y reparto porcentual, calculado solo sobre días con
   registro. Después comido contra gasto, pasos, y peso. El peso se registra con fecha
   (un peso por día, reemplaza; solo el más reciente toca el perfil y las metas).
-- **PERFIL.** Mifflin-St Jeor para BMR y TDEE, proteína 1.8 g/kg, grasa 0.8 g/kg, piso de
-  1500/1200 kcal. Interruptor "sumar lo quemado a la meta" (si está activo, la actividad base
+- **PERFIL.** Mifflin-St Jeor para BMR y TDEE, o Katch-McArdle sobre la masa magra si el
+  % de grasa corporal (opcional) está entre 3 y 70. Proteína 1.8 g/kg, grasa 0.8 g/kg, piso
+  de 1500/1200 kcal. Interruptor "sumar lo quemado a la meta" (si está activo, la actividad base
   debe quedar en Sedentaria para no contar doble). Clave de API, despensa, respaldo.
 
 ## El anillo del día

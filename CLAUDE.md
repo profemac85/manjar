@@ -108,21 +108,36 @@ macro.
   buscador de despensa que llena el formulario con la porción habitual. En el desglose
   editable, `cambiarGramos` actualiza la línea SIN redibujar la lista (`refrescarLinea`):
   si se reconstruye el input mientras se escribe, se pierde el foco a cada dígito.
-- **MOVER.** Pasos y kcal activas. Si las activas vienen vacías se estiman desde los pasos
-  (aprox `0.00045 * peso` por paso).
-- **DATOS.** Selector Semana/Mes (7 o 30 días, `perDatos`) y ventana navegable por fechas
-  (`finDatos`: flechas mueven de a `perDatos` días, tocar la fecha abre el calendario, pill
-  "hoy" vuelve). Arriba, panel de racha: días seguidos con registro y sin pasarse del tope
+- **MOVER.** Trabaja sobre `diaVisto`. Pasos del día aparte, y `DB.actividades` como lista
+  (tipo, min, kcal, fuente manual o "salud"). `movDe()` conserva su forma {pasos, activas,
+  ts} con activas = suma de las actividades del día. El Atajo escribe pasos y UNA actividad
+  "Salud" por día (se reemplaza, no se suma); editarla o borrarla resuelve el doble conteo
+  con deportes anotados a mano. Kcal manuales vacías se estiman por MET (tabla `METS`) con
+  los minutos y el peso. Swipe izquierda elimina (con Deshacer en el toast, `aviso()` acepta
+  acción), tap edita en el formulario. Migración automática en `migrar()`: las `activas`
+  viejas de movimiento se convierten en actividad Salud.
+- **DATOS.** Períodos de calendario real: Semana (lunes a domingo, corte lunes), Mes (1 al
+  último día) y Año (serie mensual donde cada barra es el promedio diario de los días con
+  registro del mes, para que la línea de meta diaria siga siendo comparable). Estado
+  `perTipo` + `perAncla`; flechas mueven de a un período, la etiqueta muestra el rango
+  explícito, pill "hoy" vuelve al período actual. Arriba, panel de racha: días seguidos con registro y sin pasarse del tope
   (hoy sin registro no corta, hoy pasado la deja en 0; puntos de los últimos 7 días). La
   racha es siempre la actual, no depende de la ventana. Los KPIs son TOTALES del período (comido, quemado, balance; los promedios se leen
   en las barras), y el balance solo suma días con registro. Panel "Macros por día": barras
   apiladas por aporte calórico de cada macro (la lógica del anillo llevada a la serie) con
   resumen de promedios contra metas y reparto porcentual, calculado solo sobre días con
   registro. Después comido contra gasto, pasos, y peso. El peso se registra con fecha
-  (un peso por día, reemplaza; solo el más reciente toca el perfil y las metas).
+  (un peso por día, reemplaza; solo el más reciente toca el perfil y las metas). Los KPIs
+  son totales sobre los días reales del período; promedios solo sobre días con registro.
+- **DESPENSA.** Sexta pestaña. Buscador sobre todos los productos, "+ hoy" (abre el desglose
+  editable en CAPTURA con la porción guardada precargada), edición inline (nombre, porción,
+  valores por 100 g incluida fibra) y eliminación con Deshacer. Recetas: un alimento con
+  `receta:{rend, ings}` guarda el snapshot de ingredientes y el rendimiento cocido;
+  `calcularReceta()` deriva los valores por 100 g del producto terminado. Se registra
+  consumo en gramos del terminado por el flujo normal.
 - **PERFIL.** Mifflin-St Jeor para BMR y TDEE, o Katch-McArdle sobre la masa magra si el
   % de grasa corporal (opcional) está entre 3 y 70. Proteína 1.8 g/kg, grasa 0.8 g/kg, piso
-  de 1500/1200 kcal. Interruptor "sumar lo quemado a la meta" (si está activo, la actividad base
+  de 1500/1200 kcal. Meta de fibra configurable (30 g por defecto). Interruptor "sumar lo quemado a la meta" (si está activo, la actividad base
   debe quedar en Sedentaria para no contar doble). Clave de API, despensa, respaldo.
 
 ## El anillo del día
@@ -134,6 +149,12 @@ aparece cuando el interruptor de compensar está activo: representa el espacio e
 el movimiento. Si se pasa del tope, los tres arcos se vuelven sandía y aparece un aro fino
 por fuera (radio 58) con el exceso. **El centro va vacío**, porque la cifra ya está a la
 izquierda.
+
+## La fibra
+
+Cuarto macro: `fibra_100g` en alimentos y prompts, `f` en comidas (las viejas cuentan 0 sin
+migración). Cuarta barra en HOY y cuarta fila en DATOS, color `--ok`. NO entra al anillo ni
+al apilado de macros, porque esos reparten el aporte calórico y la fibra casi no aporta.
 
 ## El desglose multi-ítem
 

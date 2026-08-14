@@ -1,6 +1,6 @@
 ---
 name: manjar
-description: Usar cuando el usuario pida registrar comida para su app Manjar - mensajes que comienzan con "registra:" o "registra", descripciones de lo que comió para anotarlo, correcciones a un registro recién entregado (porciones, ingredientes, horas), o cuando pegue su despensa en formato "nombre | porción g | kcal/100g | prote/100g | carbo/100g | grasa/100g".
+description: Usar cuando el usuario pida registrar comida para su app Manjar - mensajes que comienzan con "registra:" o "registra", descripciones de lo que comió para anotarlo, correcciones a un registro recién entregado (porciones, ingredientes, horas), o cuando pegue su despensa en formato "nombre | porción g | kcal/100g | prote/100g | carbo/100g | grasa/100g | fibra/100g".
 ---
 
 # Manjar: registrar comidas
@@ -24,7 +24,7 @@ converses antes de entregar; las correcciones vienen después.
 ## Despensa del usuario
 
 Si en la conversación hay una tabla pegada con formato
-`nombre | porción g | kcal/100g | prote/100g | carbo/100g | grasa/100g`, esa es su despensa
+`nombre | porción g | kcal/100g | prote/100g | carbo/100g | grasa/100g | fibra/100g`, esa es su despensa
 personal: USA ESOS VALORES TAL CUAL, sin reestimarlos ni buscarlos. Ajusta solo la porción si
 comió distinto. Líneas ilegibles se ignoran sin reclamar. Sin tabla pegada, estima o busca.
 
@@ -36,6 +36,7 @@ comió distinto. Líneas ilegibles se ignoran sin reclamar. Sin tabla pegada, es
   Open Food Facts).
 - NO busques alimentos genéricos (pollo a la plancha, arroz, palta): tablas estándar.
 - Normaliza a valores por 100 g; si la etiqueta viene por porción, convierte.
+- Incluye SIEMPRE fibra_100g (de la etiqueta o estimada; 0 si el alimento no aporta).
 - Confianza: "alta" con tabla oficial, "media" con fuente secundaria, "baja" si quedó
   estimado. Menciona las fuentes en la nota.
 - Si no encuentras la tabla, estima, marca la confianza y dilo en la nota.
@@ -45,8 +46,8 @@ comió distinto. Líneas ilegibles se ignoran sin reclamar. Sin tabla pegada, es
 Al final del mensaje, dentro de un fence ```json, UN solo objeto y nada después:
 
 ```json
-{"comidas":[{"nombre":"...","hora":"13:30","porcion_g":0,"kcal_100g":0,"prot_100g":0,"carb_100g":0,"gras_100g":0,"confianza":"alta"}],
- "despensa":[{"nombre":"...","porcion_g":0,"kcal_100g":0,"prot_100g":0,"carb_100g":0,"gras_100g":0}],
+{"comidas":[{"nombre":"...","hora":"13:30","porcion_g":0,"kcal_100g":0,"prot_100g":0,"carb_100g":0,"gras_100g":0,"fibra_100g":0,"confianza":"alta"}],
+ "despensa":[{"nombre":"...","porcion_g":0,"kcal_100g":0,"prot_100g":0,"carb_100g":0,"gras_100g":0,"fibra_100g":0}],
  "nota":"supuestos principales en una o dos frases"}
 ```
 
@@ -80,8 +81,8 @@ la tabla oficial de Soprole; la palta chica la asumí en 100 g."
 
 ```json
 {"comidas":[
-  {"nombre":"Yogurt Soprole Protein+ natural endulzado","hora":"13:30","porcion_g":155,"kcal_100g":68,"prot_100g":6.6,"carb_100g":6.3,"gras_100g":1.8,"confianza":"alta"},
-  {"nombre":"Palta","hora":"13:30","porcion_g":100,"kcal_100g":160,"prot_100g":2,"carb_100g":8.5,"gras_100g":14.7,"confianza":"media"}],
- "despensa":[{"nombre":"Yogurt Soprole Protein+ natural endulzado","porcion_g":155,"kcal_100g":68,"prot_100g":6.6,"carb_100g":6.3,"gras_100g":1.8}],
+  {"nombre":"Yogurt Soprole Protein+ natural endulzado","hora":"13:30","porcion_g":155,"kcal_100g":68,"prot_100g":6.6,"carb_100g":6.3,"gras_100g":1.8,"fibra_100g":0,"confianza":"alta"},
+  {"nombre":"Palta","hora":"13:30","porcion_g":100,"kcal_100g":160,"prot_100g":2,"carb_100g":8.5,"gras_100g":14.7,"fibra_100g":6.7,"confianza":"media"}],
+ "despensa":[{"nombre":"Yogurt Soprole Protein+ natural endulzado","porcion_g":155,"kcal_100g":68,"prot_100g":6.6,"carb_100g":6.3,"gras_100g":1.8,"fibra_100g":0}],
  "nota":"Yogurt desde tabla oficial de Soprole. Palta chica asumida en 100 g, valores estándar."}
 ```

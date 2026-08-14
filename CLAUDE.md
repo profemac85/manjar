@@ -108,7 +108,8 @@ macro.
   buscador de despensa que llena el formulario con la porción habitual. En el desglose
   editable, `cambiarGramos` actualiza la línea SIN redibujar la lista (`refrescarLinea`):
   si se reconstruye el input mientras se escribe, se pierde el foco a cada dígito.
-- **MOVER.** Trabaja sobre `diaVisto`. Pasos del día aparte, y `DB.actividades` como lista
+- **MOVER.** Sin pestaña propia: se entra desde el botón "Abrir" del panel de movimiento
+  de HOY (y tiene "Volver" en su topbar). Trabaja sobre `diaVisto`. Pasos del día aparte, y `DB.actividades` como lista
   (tipo, min, kcal, fuente manual o "salud"). `movDe()` conserva su forma {pasos, activas,
   ts} con activas = suma de las actividades del día. El Atajo escribe pasos y UNA actividad
   "Salud" por día (se reemplaza, no se suma); editarla o borrarla resuelve el doble conteo
@@ -129,7 +130,7 @@ macro.
   registro. Después comido contra gasto, pasos, y peso. El peso se registra con fecha
   (un peso por día, reemplaza; solo el más reciente toca el perfil y las metas). Los KPIs
   son totales sobre los días reales del período; promedios solo sobre días con registro.
-- **DESPENSA.** Sexta pestaña. Buscador sobre todos los productos, "+ hoy" (abre el desglose
+- **DESPENSA.** Quinta pestaña (la barra quedó Hoy, Datos, +, Despensa, Perfil). Buscador sobre todos los productos, "+ hoy" (abre el desglose
   editable en CAPTURA con la porción guardada precargada), edición inline (nombre, porción,
   valores por 100 g incluida fibra) y eliminación con Deshacer. Recetas: un alimento con
   `receta:{rend, ings}` guarda el snapshot de ingredientes y el rendimiento cocido;

@@ -425,7 +425,7 @@ hr.sep{border:0;border-top:1px solid var(--linea);margin:22px 0}
   <!-- movimiento -->
   <div class="panel">
     <div class="mov-cab"><div class="eyebrow">Movimiento</div>
-      <button class="eyebrow" style="color:var(--manjar)" onclick="irA('mover')">Sincronizar</button></div>
+      <button class="eyebrow" style="color:var(--manjar)" onclick="irA('mover')">Abrir</button></div>
     <div class="mov-grid">
       <div class="mov-pasos">
         <div class="n" id="mv-pasos">0</div>
@@ -563,7 +563,10 @@ hr.sep{border:0;border-top:1px solid var(--linea);margin:22px 0}
 
 <!-- ============ MOVER ============ -->
 <section class="vista" id="v-mover">
-  <div class="topbar"><h1>Movimiento</h1><div class="fecha" id="mover-fecha"></div></div>
+  <div class="topbar">
+    <button class="eyebrow" style="color:var(--manjar)" onclick="irA('hoy')">&#8249; Volver</button>
+    <h1>Movimiento</h1><div class="fecha" id="mover-fecha"></div>
+  </div>
 
   <button class="btn" onclick="sincronizarSalud()">1 &middot; Correr Manjar Sync</button>
   <button class="btn fantasma" onclick="pegarSalud()">2 &middot; Traer lo que dejó Salud</button>
@@ -798,8 +801,6 @@ hr.sep{border:0;border-top:1px solid var(--linea);margin:22px 0}
     <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div></button>
   <button data-tab="despensa" onclick="irA('despensa')">
     <svg viewBox="0 0 24 24"><path d="M4 10h16l-1.5 9.5a2 2 0 0 1-2 1.5h-9a2 2 0 0 1-2-1.5Z M8 10V7a4 4 0 0 1 8 0v3"/></svg>Despensa</button>
-  <button data-tab="mover" onclick="irA('mover')">
-    <svg viewBox="0 0 24 24"><path d="M13 4.5a1 1 0 1 0 0-.1M11 21l1.5-5.5L9.5 13l1-5 3.5 3 3 1M9 21l1.5-4"/></svg>Mover</button>
   <button data-tab="perfil" onclick="irA('perfil')">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c1.2-3.7 3.8-5.5 7-5.5s5.8 1.8 7 5.5"/></svg>Perfil</button>
 </nav>
@@ -1038,7 +1039,7 @@ function pintarHoy(){
   document.querySelector(".mov-pasos .mbar>i").style.width=Math.min(100,mv.pasos/metaPasos()*100)+"%";
   $("mv-sello").textContent = mv.ts
     ? "actualizado a las "+new Date(mv.ts).toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"})
-    : (enHoy ? "sin datos de hoy, toca Sincronizar" : "sin movimiento registrado este día");
+    : (enHoy ? "sin datos de hoy, toca Abrir" : "sin movimiento registrado este día");
 
   dibujarAnillo(t,M,quema);
   dibujarRiel(cs,M,quema);

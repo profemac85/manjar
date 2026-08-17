@@ -10,6 +10,11 @@ pantalla de inicio.
 no agregar `package.json`, no meter librerías por CDN. Si algo parece pedir una dependencia,
 primero proponerlo y esperar respuesta, no instalarlo.
 
+Única excepción aprobada por Max: ZXing (@zxing/browser 0.1.5, Apache-2.0) vendorizado en un
+segundo bloque `<script>` al final del archivo, marcado como código de terceros que no se
+edita. Existe porque el Safari de su iPhone no trae `BarcodeDetector`. Se actualiza
+reemplazando el bloque completo, nunca editándolo.
+
 ## Cómo hablarle a Max
 
 - Español de Chile, neutro.
@@ -163,10 +168,10 @@ al apilado de macros, porque esos reparten el aporte calórico y la fibra casi n
 
 ## El escáner de código de barras
 
-Pestaña Código en CAPTURA. Lector NATIVO del navegador (`BarcodeDetector`), sin librerías:
-si el Safari del teléfono no lo trae, `soportaScanner()` muestra un aviso que manda al modo
-Foto (etapa 2 pendiente: decidir entre un decodificador EAN-13 propio en JS puro o
-vendorizar una librería, según lo que dé el iPhone real). Cadena de resolución de
+Pestaña Código en CAPTURA. Dos motores en `alternarScanner()`: `BarcodeDetector` nativo si
+el navegador lo trae (más rápido), y si no el ZXing vendorizado (`decodeFromCanvas` sobre un
+canvas al que se copia cada cuadro del video, cada 350 ms). El Safari del iPhone de Max no
+trae el nativo, así que ahí corre ZXing. Cadena de resolución de
 `resolverCodigo()`: 1) la despensa local por `a.codigo` (instantáneo, sin red, valores
 propios, confianza alta); 2) Open Food Facts (API v2, gratis, con CORS; es base colaborativa
 así que el resultado cae al desglose editable como sugerencia con confianza media,

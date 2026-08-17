@@ -462,6 +462,7 @@ hr.sep{border:0;border-top:1px solid var(--linea);margin:22px 0}
     <button data-modo="texto" onclick="modoCaptura('texto')">Describir</button>
     <button data-modo="manual" onclick="modoCaptura('manual')">Manual</button>
     <button data-modo="pegar" onclick="modoCaptura('pegar')">Pegar</button>
+    <button data-modo="codigo" onclick="modoCaptura('codigo')">Código</button>
   </div>
 
   <div id="modo-pegar" style="display:none">
@@ -536,6 +537,18 @@ hr.sep{border:0;border-top:1px solid var(--linea);margin:22px 0}
       <div class="horas" id="man-chips"></div>
       <input class="txt mono" id="man-hora" type="datetime-local" onchange="marcarChip()"></label>
     <button class="btn" onclick="guardarManual()">Guardar comida</button>
+  </div>
+
+  <div id="modo-codigo" style="display:none">
+    <div class="foto-caja" id="scan-caja" style="min-height:230px">
+      <video id="scan-video" playsinline muted style="width:100%;max-height:290px;object-fit:cover;display:none"></video>
+      <div id="scan-msj">Apunta al código de barras del envase</div>
+    </div>
+    <button class="btn" id="btn-scan" style="margin-top:12px" onclick="alternarScanner()">Escanear código</button>
+    <div id="estado-codigo"></div>
+    <p class="pista">Primero busca el código en tu <b>despensa</b> (instantáneo y con tus valores). Si no está,
+      consulta Open Food Facts y te deja el resultado para revisar. Y si tampoco aparece ahí, siempre queda
+      el modo Foto con la etiqueta.</p>
   </div>
 
   <div id="resultado" style="display:none;margin-top:18px">
@@ -947,6 +960,7 @@ function ahoraEn(pre){ $(pre+"-hora").value=aLocal(ahoraVista()); marcarChip(); 
 
 /* ================= navegación ================= */
 function irA(v){
+  if(v!=="captura"&&typeof detenerScanner==="function")detenerScanner();
   document.querySelectorAll(".vista").forEach(s=>s.classList.remove("activa"));
   $("v-"+v).classList.add("activa");
   document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.tab===v));
@@ -1184,13 +1198,109 @@ function dibujarRiel(cs,M,quema){
 /* ================= captura ================= */
 let fotoB64=null, thumbActual=null;
 function modoCaptura(m){
-  document.querySelectorAll(".segmento button").forEach(b=>b.classList.toggle("on",b.dataset.modo===m));
+  document.querySelectorAll("#v-captura .segmento button").forEach(b=>b.classList.toggle("on",b.dataset.modo===m));
   $("modo-foto").style.display = m==="foto"?"":"none";
   $("modo-texto").style.display = m==="texto"?"":"none";
   $("modo-manual").style.display = m==="manual"?"":"none";
   $("modo-pegar").style.display = m==="pegar"?"":"none";
+  $("modo-codigo").style.display = m==="codigo"?"":"none";
   $("resultado").style.display="none";
+  if(m!=="codigo")detenerScanner();
   if(m==="texto")sugerirDespensa();
+  if(m==="codigo"&&!soportaScanner()){
+    $("estado-codigo").innerHTML=`<div class="aviso">Este navegador todavía no trae el lector de códigos
+      (BarcodeDetector). Usa el modo Foto con la etiqueta nutricional, que hace lo mismo.</div>`;
+    $("btn-scan").disabled=true;
+  }
+}
+
+/* ================= escáner de código de barras =================
+   Solo el lector NATIVO del navegador (BarcodeDetector), sin librerías: es la regla
+   del proyecto. Si el Safari del teléfono no lo trae, el aviso manda al modo Foto. */
+let scanStream=null, scanTimer=null;
+function soportaScanner(){ return "BarcodeDetector" in window; }
+async function alternarScanner(){
+  if(scanStream){ detenerScanner(); return; }
+  try{
+    scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false});
+  }catch(e){
+    $("estado-codigo").innerHTML=`<div class="aviso">No se pudo abrir la cámara. Revisa el permiso en Ajustes,
+      o usa el modo Foto.</div>`;
+    return;
+  }
+  const v=$("scan-video");
+  v.srcObject=scanStream; v.style.display=""; $("scan-msj").style.display="none";
+  await v.play();
+  $("btn-scan").textContent="Detener";
+  $("estado-codigo").innerHTML=`<div class="cargando"><div class="spin"></div>Buscando el código...</div>`;
+  const det=new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e","code_128"]});
+  scanTimer=setInterval(async()=>{
+    if(!scanStream)return;
+    try{
+      const codigos=await det.detect(v);
+      if(codigos.length){
+        const code=codigos[0].rawValue;
+        detenerScanner();
+        if(navigator.vibrate)navigator.vibrate(80);
+        resolverCodigo(code);
+      }
+    }catch(e){ /* frame no listo todavía */ }
+  },350);
+}
+function detenerScanner(){
+  clearInterval(scanTimer); scanTimer=null;
+  if(scanStream){ scanStream.getTracks().forEach(t=>t.stop()); scanStream=null; }
+  const v=$("scan-video"); if(v){ v.srcObject=null; v.style.display="none"; }
+  const m=$("scan-msj"); if(m)m.style.display="";
+  const b=$("btn-scan"); if(b)b.textContent="Escanear código";
+  const e=$("estado-codigo"); if(e&&e.querySelector(".cargando"))e.innerHTML="";
+}
+/* convierte un producto de Open Food Facts en una línea del desglose */
+function alimentoDesdeOFF(prod,code){
+  const n=prod.nutriments||{};
+  let kcal=parseFloat(n["energy-kcal_100g"]);
+  if(!kcal||isNaN(kcal)){ const kj=parseFloat(n["energy_100g"]); kcal=kj?kj/4.184:0; }
+  if(!kcal)return null;
+  const porcion=parseFloat(prod.serving_quantity)||100;
+  const marca=prod.brands?String(prod.brands).split(",")[0].trim():"";
+  const base=(prod.product_name||"").trim();
+  const nombre=(base && marca && !normalizar(base).includes(normalizar(marca))
+    ? base+" "+marca : base||marca)||"Producto "+code;
+  return {nombre,porcion_g:porcion,codigo:code,
+    kcal_100g:kcal,prot_100g:parseFloat(n["proteins_100g"])||0,
+    carb_100g:parseFloat(n["carbohydrates_100g"])||0,gras_100g:parseFloat(n["fat_100g"])||0,
+    fibra_100g:parseFloat(n["fiber_100g"])||0,confianza:"media"};
+}
+async function resolverCodigo(code){
+  // 1. la despensa local manda: instantáneo, sin red y con tus valores
+  const mio=DB.alimentos.find(a=>a.codigo===code);
+  if(mio){
+    cargarLineas({items:[{nombre:mio.nom,porcion_g:mio.gramos||100,codigo:code,
+      kcal_100g:mio.kcal_100g,prot_100g:mio.prot_100g,carb_100g:mio.carb_100g,
+      gras_100g:mio.gras_100g,fibra_100g:mio.fibra_100g||0,confianza:"alta"}],
+      nota:"De tu despensa, por el código de barra."},"codigo");
+    return;
+  }
+  // 2. Open Food Facts como sugerencia revisable
+  $("estado-codigo").innerHTML=`<div class="cargando"><div class="spin"></div>Buscando ${esc(code)} en Open Food Facts...</div>`;
+  try{
+    const rs=await fetch("https://world.openfoodfacts.org/api/v2/product/"+encodeURIComponent(code)+
+      ".json?fields=product_name,brands,nutriments,serving_quantity");
+    const j=await rs.json();
+    const item=j&&j.status===1&&j.product ? alimentoDesdeOFF(j.product,code) : null;
+    if(item){
+      $("estado-codigo").innerHTML="";
+      cargarLineas({items:[item],
+        nota:"Datos de Open Food Facts (base colaborativa): revísalos contra la etiqueta antes de guardar."},"codigo");
+      return;
+    }
+    // 3. sin datos: al modo foto
+    $("estado-codigo").innerHTML=`<div class="aviso">Código ${esc(code)} sin datos en Open Food Facts.
+      Sácale una foto a la etiqueta nutricional y sigue por ahí.</div>`;
+  }catch(e){
+    $("estado-codigo").innerHTML=`<div class="aviso">No se pudo consultar (¿sin señal?). Prueba con el modo Foto
+      o registra a mano.</div>`;
+  }
 }
 
 /* ---- llamada genérica a la API ---- */
@@ -1407,10 +1517,11 @@ function guardarEnDespensa(nom,g,l){
   const y=DB.alimentos.find(a=>normalizar(a.nom)===n);
   if(y){ y.usos=(y.usos||1)+1; y.gramos=g; y.ultimo=Date.now();
     y.kcal_100g=l.kcal_100g;y.prot_100g=l.prot_100g;y.carb_100g=l.carb_100g;y.gras_100g=l.gras_100g;
-    y.fibra_100g=l.fibra_100g||0; }
+    y.fibra_100g=l.fibra_100g||0;
+    if(l.codigo)y.codigo=l.codigo; }
   else DB.alimentos.push({id:"a"+Date.now()+Math.floor(Math.random()*999),nom,gramos:g,usos:1,ultimo:Date.now(),
     kcal_100g:l.kcal_100g||0,prot_100g:l.prot_100g||0,carb_100g:l.carb_100g||0,gras_100g:l.gras_100g||0,
-    fibra_100g:l.fibra_100g||0});
+    fibra_100g:l.fibra_100g||0,codigo:l.codigo||undefined});
 }
 /* ================= vista despensa ================= */
 let editandoAlim=null;
@@ -1687,13 +1798,14 @@ function cargarLineas(j,fuente){
     carb_100g: parseFloat(it.carb_100g)||0,
     gras_100g: parseFloat(it.gras_100g)||0,
     fibra_100g: parseFloat(it.fibra_100g)||0,
+    codigo: it.codigo||null,
     confianza: (it.confianza||"media").toLowerCase(),
     hora: /^\d{1,2}:\d{2}$/.test(String(it.hora||"").trim())
       ? String(it.hora).trim().padStart(5,"0") : null,
     incluir: true
   }));
   fuenteActual=fuente;
-  const fuentes={foto:"desde la foto",texto:"buscado en la web",despensa:"de tu despensa",manual:"a mano"};
+  const fuentes={foto:"desde la foto",texto:"buscado en la web",despensa:"de tu despensa",manual:"a mano",codigo:"por código de barra"};
   $("res-conf").textContent=fuentes[fuente]||"";
   $("res-notas").textContent=j.nota||"";
   ahoraEn("res");

@@ -104,7 +104,7 @@ macro.
   Cena, con subtotal por grupo, y es editable inline: gramos (reescala kcal y macros en
   proporción) y botones − + que suman o restan una porción. La porción oficial de un
   producto son los gramos guardados en su despensa (`porcionDe()`).
-- **CAPTURA.** Cuatro pestañas: Foto, Describir, Manual, Pegar. Manual lleva arriba un
+- **CAPTURA.** Cinco pestañas: Foto, Describir, Manual, Pegar, Código. Manual lleva arriba un
   buscador de despensa que llena el formulario con la porción habitual. En el desglose
   editable, `cambiarGramos` actualiza la línea SIN redibujar la lista (`refrescarLinea`):
   si se reconstruye el input mientras se escribe, se pierde el foco a cada dígito.
@@ -156,6 +156,20 @@ izquierda.
 Cuarto macro: `fibra_100g` en alimentos y prompts, `f` en comidas (las viejas cuentan 0 sin
 migración). Cuarta barra en HOY y cuarta fila en DATOS, color `--ok`. NO entra al anillo ni
 al apilado de macros, porque esos reparten el aporte calórico y la fibra casi no aporta.
+
+## El escáner de código de barras
+
+Pestaña Código en CAPTURA. Lector NATIVO del navegador (`BarcodeDetector`), sin librerías:
+si el Safari del teléfono no lo trae, `soportaScanner()` muestra un aviso que manda al modo
+Foto (etapa 2 pendiente: decidir entre un decodificador EAN-13 propio en JS puro o
+vendorizar una librería, según lo que dé el iPhone real). Cadena de resolución de
+`resolverCodigo()`: 1) la despensa local por `a.codigo` (instantáneo, sin red, valores
+propios, confianza alta); 2) Open Food Facts (API v2, gratis, con CORS; es base colaborativa
+así que el resultado cae al desglose editable como sugerencia con confianza media,
+`alimentoDesdeOFF()` normaliza kcal desde kJ si falta energy-kcal y usa serving_quantity
+como porción con 100 g de respaldo); 3) sin datos, aviso que manda al modo Foto. Al guardar,
+`guardarEnDespensa()` asocia el código al alimento, así el próximo escaneo es local. La
+cámara se apaga al cambiar de modo o de vista (`detenerScanner()`).
 
 ## El desglose multi-ítem
 

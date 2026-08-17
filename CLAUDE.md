@@ -170,7 +170,10 @@ al apilado de macros, porque esos reparten el aporte calórico y la fibra casi n
 
 Pestaña Código en CAPTURA. Dos motores en `alternarScanner()`: `BarcodeDetector` nativo si
 el navegador lo trae (más rápido), y si no el ZXing vendorizado (`decodeFromCanvas` sobre un
-canvas al que se copia cada cuadro del video, cada 350 ms). El Safari del iPhone de Max no
+canvas al que se copia cada cuadro del video, cada 350 ms, con TRY_HARDER, alternando el
+recorte del marco de encuadre con el cuadro completo). La cámara se pide a 1920x1080 y se
+aplica zoom 2x más enfoque continuo cuando la cámara los soporta, porque el iPhone no enfoca
+a menos de ~10 cm y en baja resolución un código lejano no tiene pixeles suficientes. El Safari del iPhone de Max no
 trae el nativo, así que ahí corre ZXing. Cadena de resolución de
 `resolverCodigo()`: 1) la despensa local por `a.codigo` (instantáneo, sin red, valores
 propios, confianza alta); 2) Open Food Facts (API v2, gratis, con CORS; es base colaborativa

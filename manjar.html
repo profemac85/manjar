@@ -1259,7 +1259,8 @@ function soportaScanner(){ return ("BarcodeDetector" in window) || !!window.ZXin
 async function alternarScanner(){
   if(scanStream){ detenerScanner(); return; }
   try{
-    scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false});
+    scanStream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:"environment",width:{ideal:1920},height:{ideal:1080}},audio:false});
   }catch(e){
     $("estado-codigo").innerHTML=`<div class="aviso">No se pudo abrir la cámara. Revisa el permiso en Ajustes,
       o usa el modo Foto.</div>`;
@@ -1268,15 +1269,29 @@ async function alternarScanner(){
   const v=$("scan-video");
   v.srcObject=scanStream; v.style.display=""; $("scan-msj").style.display="none";
   await v.play();
+  // zoom 2x y enfoque continuo cuando existen: el código se ve grande SIN acercarse
+  // al mínimo de enfoque del lente (unos 10 cm en iPhone)
+  try{
+    const track=scanStream.getVideoTracks()[0];
+    const cap=track.getCapabilities?track.getCapabilities():{};
+    const adv=[];
+    if(cap.zoom&&cap.zoom.max>=2)adv.push({zoom:Math.min(2,cap.zoom.max)});
+    if(cap.focusMode&&cap.focusMode.includes&&cap.focusMode.includes("continuous"))adv.push({focusMode:"continuous"});
+    if(adv.length)await track.applyConstraints({advanced:adv});
+  }catch(e){ /* sin esas perillas, se escanea igual */ }
   $("btn-scan").textContent="Detener";
   $("estado-codigo").innerHTML="";
   const ov=$("scan-overlay");
   ov.style.display=""; ov.classList.remove("exito");
-  $("scan-texto").textContent="Encuadra el código en el marco";
+  $("scan-texto").textContent="Apunta al código, sin acercarte tanto";
   // dos motores: BarcodeDetector nativo si existe (más rápido), si no ZXing vendorizado
   const det="BarcodeDetector" in window ? new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e","code_128"]}) : null;
-  const zxr=det?null:new ZXingBrowser.BrowserMultiFormatReader();
-  let lienzo=null;
+  let zxr=null;
+  if(!det){
+    try{ zxr=new ZXingBrowser.BrowserMultiFormatReader(new Map([[3,true]])); }  // 3 = TRY_HARDER
+    catch(e){ zxr=new ZXingBrowser.BrowserMultiFormatReader(); }
+  }
+  let lienzo=null, tick=0;
   scanTimer=setInterval(async()=>{
     if(!scanStream)return;
     let code=null;
@@ -1286,8 +1301,12 @@ async function alternarScanner(){
         if(codigos.length)code=codigos[0].rawValue;
       }else if(v.videoWidth){
         if(!lienzo)lienzo=document.createElement("canvas");
-        lienzo.width=v.videoWidth; lienzo.height=v.videoHeight;
-        lienzo.getContext("2d").drawImage(v,0,0);
+        // alterna: el recorte de la ventana de encuadre (código proporcionalmente más
+        // grande, menos ruido) y el cuadro completo (por si quedó fuera del marco)
+        const W=v.videoWidth, H=v.videoHeight, rec=(tick++%2)===0;
+        const sx=rec?W*0.08:0, sy=rec?H*0.22:0, sw=rec?W*0.84:W, sh=rec?H*0.56:H;
+        lienzo.width=sw; lienzo.height=sh;
+        lienzo.getContext("2d").drawImage(v,sx,sy,sw,sh,0,0,sw,sh);
         try{ code=zxr.decodeFromCanvas(lienzo).getText(); }
         catch(e){ /* NotFoundException: este cuadro no traía código */ }
       }

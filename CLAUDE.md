@@ -178,7 +178,10 @@ así que el resultado cae al desglose editable como sugerencia con confianza med
 `alimentoDesdeOFF()` normaliza kcal desde kJ si falta energy-kcal y usa serving_quantity
 como porción con 100 g de respaldo); 3) sin datos, aviso que manda al modo Foto. Al guardar,
 `guardarEnDespensa()` asocia el código al alimento, así el próximo escaneo es local. La
-cámara se apaga al cambiar de modo o de vista (`detenerScanner()`).
+cámara se apaga al cambiar de modo o de vista (`detenerScanner()`). El visor lleva overlay
+de encuadre (esquinas, línea de barrido, tokens `--scrim`/`--video-tx` iguales en ambos
+temas porque van sobre video) y feedback en tres tiempos: "Código leído · N" en verde con
+vibración, la búsqueda, y "✓ nombre" con toast al encontrar el producto.
 
 ## El desglose multi-ítem
 

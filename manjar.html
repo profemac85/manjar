@@ -13,6 +13,8 @@
 /* Tema CREE Día (por defecto). Los nombres de las variables conservan su rol histórico:
    tinta = fondo, hueso = texto, manjar = acento. Noche las redefine más abajo. */
 :root{
+  --scrim:rgba(0,0,0,.45);
+  --video-tx:#FFFFFF;
   --tinta:#F3F5FA;
   --carbon:#FFFFFF;
   --carbon-alto:#EDF1F8;
@@ -44,6 +46,8 @@
 }
 /* Tema CREE Noche, se activa con el interruptor de Perfil */
 :root[data-tema="noche"]{
+  --scrim:rgba(0,0,0,.45);
+  --video-tx:#FFFFFF;
   --tinta:#0F1D33;
   --carbon:#17294A;
   --carbon-alto:#20355C;
@@ -233,6 +237,24 @@ input.txt:focus,select.txt:focus{outline:2px solid var(--manjar);outline-offset:
 .confianza.alta{color:var(--ok);border-color:var(--ok-borde)}
 .confianza.media{color:var(--manjar);border-color:var(--acc-borde)}
 .confianza.baja{color:var(--sandia);border-color:var(--sandia-borde)}
+
+/* visor del escáner: ventana de encuadre, esquinas y línea de barrido */
+.scan-overlay{position:absolute;inset:0;pointer-events:none}
+.scan-ventana{position:absolute;left:9%;right:9%;top:20%;bottom:20%;border-radius:14px;
+  box-shadow:0 0 0 600px var(--scrim)}
+.scan-ventana i{position:absolute;width:26px;height:26px;border:3px solid var(--manjar)}
+.scan-ventana i:nth-child(1){top:-2px;left:-2px;border-right:0;border-bottom:0;border-radius:10px 0 0 0}
+.scan-ventana i:nth-child(2){top:-2px;right:-2px;border-left:0;border-bottom:0;border-radius:0 10px 0 0}
+.scan-ventana i:nth-child(3){bottom:-2px;left:-2px;border-right:0;border-top:0;border-radius:0 0 0 10px}
+.scan-ventana i:nth-child(4){bottom:-2px;right:-2px;border-left:0;border-top:0;border-radius:0 0 10px 0}
+.scan-linea{position:absolute;left:10px;right:10px;height:2px;background:var(--manjar);opacity:.9;
+  animation:escaneo 1.6s ease-in-out infinite alternate}
+@keyframes escaneo{from{top:10px}to{top:calc(100% - 12px)}}
+.scan-overlay.exito .scan-ventana i{border-color:var(--ok)}
+.scan-overlay.exito .scan-linea{animation:none;top:50%;background:var(--ok)}
+.scan-texto{position:absolute;left:0;right:0;bottom:7%;text-align:center;font-family:var(--display);
+  text-transform:uppercase;letter-spacing:.12em;font-size:10px;font-weight:600;color:var(--video-tx);
+  text-shadow:0 1px 4px var(--scrim)}
 
 /* modo texto y despensa */
 textarea.txt{width:100%;background:var(--carbon-alto);border:1px solid var(--linea);border-radius:11px;
@@ -543,6 +565,10 @@ hr.sep{border:0;border-top:1px solid var(--linea);margin:22px 0}
   <div id="modo-codigo" style="display:none">
     <div class="foto-caja" id="scan-caja" style="min-height:230px">
       <video id="scan-video" playsinline muted style="width:100%;max-height:290px;object-fit:cover;display:none"></video>
+      <div class="scan-overlay" id="scan-overlay" style="display:none">
+        <div class="scan-ventana"><i></i><i></i><i></i><i></i><div class="scan-linea"></div></div>
+        <div class="scan-texto" id="scan-texto">Encuadra el código en el marco</div>
+      </div>
       <div id="scan-msj">Apunta al código de barras del envase</div>
     </div>
     <button class="btn" id="btn-scan" style="margin-top:12px" onclick="alternarScanner()">Escanear código</button>
@@ -1243,7 +1269,10 @@ async function alternarScanner(){
   v.srcObject=scanStream; v.style.display=""; $("scan-msj").style.display="none";
   await v.play();
   $("btn-scan").textContent="Detener";
-  $("estado-codigo").innerHTML=`<div class="cargando"><div class="spin"></div>Buscando el código...</div>`;
+  $("estado-codigo").innerHTML="";
+  const ov=$("scan-overlay");
+  ov.style.display=""; ov.classList.remove("exito");
+  $("scan-texto").textContent="Encuadra el código en el marco";
   // dos motores: BarcodeDetector nativo si existe (más rápido), si no ZXing vendorizado
   const det="BarcodeDetector" in window ? new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e","code_128"]}) : null;
   const zxr=det?null:new ZXingBrowser.BrowserMultiFormatReader();
@@ -1264,9 +1293,12 @@ async function alternarScanner(){
       }
     }catch(e){ /* frame no listo todavía */ }
     if(code){
-      detenerScanner();
+      clearInterval(scanTimer); scanTimer=null;   // congela la lectura pero deja el video un instante
       if(navigator.vibrate)navigator.vibrate(80);
-      resolverCodigo(code);
+      const ov2=$("scan-overlay");
+      ov2.classList.add("exito");
+      $("scan-texto").textContent="Código leído · "+code;
+      setTimeout(()=>{ detenerScanner(); resolverCodigo(code); },600);
     }
   },350);
 }
@@ -1274,6 +1306,7 @@ function detenerScanner(){
   clearInterval(scanTimer); scanTimer=null;
   if(scanStream){ scanStream.getTracks().forEach(t=>t.stop()); scanStream=null; }
   const v=$("scan-video"); if(v){ v.srcObject=null; v.style.display="none"; }
+  const ov=$("scan-overlay"); if(ov){ ov.style.display="none"; ov.classList.remove("exito"); }
   const m=$("scan-msj"); if(m)m.style.display="";
   const b=$("btn-scan"); if(b)b.textContent="Escanear código";
   const e=$("estado-codigo"); if(e&&e.querySelector(".cargando"))e.innerHTML="";
@@ -1298,6 +1331,8 @@ async function resolverCodigo(code){
   // 1. la despensa local manda: instantáneo, sin red y con tus valores
   const mio=DB.alimentos.find(a=>a.codigo===code);
   if(mio){
+    $("estado-codigo").innerHTML=`<p class="pista" style="color:var(--ok);font-weight:600">&#10003; ${esc(mio.nom)}, de tu despensa</p>`;
+    aviso("Encontrado: "+mio.nom);
     cargarLineas({items:[{nombre:mio.nom,porcion_g:mio.gramos||100,codigo:code,
       kcal_100g:mio.kcal_100g,prot_100g:mio.prot_100g,carb_100g:mio.carb_100g,
       gras_100g:mio.gras_100g,fibra_100g:mio.fibra_100g||0,confianza:"alta"}],
@@ -1312,7 +1347,8 @@ async function resolverCodigo(code){
     const j=await rs.json();
     const item=j&&j.status===1&&j.product ? alimentoDesdeOFF(j.product,code) : null;
     if(item){
-      $("estado-codigo").innerHTML="";
+      $("estado-codigo").innerHTML=`<p class="pista" style="color:var(--ok);font-weight:600">&#10003; ${esc(item.nombre)}, encontrado en Open Food Facts</p>`;
+      aviso("Encontrado: "+item.nombre);
       cargarLineas({items:[item],
         nota:"Datos de Open Food Facts (base colaborativa): revísalos contra la etiqueta antes de guardar."},"codigo");
       return;

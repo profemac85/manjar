@@ -101,9 +101,13 @@ macro.
   En otro día la fecha se pinta manjar y el rótulo cambia (pasado "Quedó disponible",
   futuro "Planificado"). Los chips de captura apuntan al día visto.
   La lista de comidas va agrupada por Desayuno (<11:30), Almuerzo (<16:00), Once (<19:45) y
-  Cena, con subtotal por grupo, y es editable inline: gramos (reescala kcal y macros en
-  proporción) y botones − + que suman o restan una porción. La porción oficial de un
-  producto son los gramos guardados en su despensa (`porcionDe()`).
+  Cena, con subtotal por grupo (kcal y P C G F), y es editable inline con DOS unidades
+  enlazadas: gramos y porciones (cambiar una recalcula la otra, y los botones − + suman o
+  restan una porción). La porción oficial de un producto son los gramos guardados en su
+  despensa (`porcionDe()`; sin despensa, lo registrado cuenta como 1 porción). El mismo par
+  de campos está en el desglose editable (`cambiarPorciones`/`cambiarPorcComida`, con
+  `basePorcion()`), siempre actualizando el campo hermano sin redibujar para no botar el
+  foco. Acepta coma decimal.
 - **CAPTURA.** Cinco pestañas: Foto, Describir, Manual, Pegar, Código. Manual lleva arriba un
   buscador de despensa que llena el formulario con la porción habitual. En el desglose
   editable, `cambiarGramos` actualiza la línea SIN redibujar la lista (`refrescarLinea`):

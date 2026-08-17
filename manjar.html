@@ -306,6 +306,7 @@ input.hora-item:focus{outline:1px solid var(--manjar);outline-offset:2px;border-
 .lg{background:var(--carbon-alto);border:1px solid var(--linea);border-radius:6px;padding:2px 5px;
   width:56px;color:var(--hueso);font-family:var(--mono);font-size:11px;-webkit-appearance:none;margin:0}
 .lg:focus{outline:1px solid var(--manjar);outline-offset:0}
+.lp{width:42px}
 .paso{width:22px;height:22px;border-radius:7px;border:1px solid var(--linea);background:var(--carbon-alto);
   color:var(--hueso);font-size:13px;line-height:1;margin-left:3px;vertical-align:middle}
 .paso:active{border-color:var(--manjar);color:var(--manjar)}
@@ -1072,17 +1073,20 @@ function pintarHoy(){
   lista.innerHTML=GRUPOS.map((g,gi)=>{
     const del=cs.filter(c=>grupoDe(c.ts)===gi);
     if(!del.length)return "";
-    const sub=del.reduce((a,c)=>a+c.kcal,0);
+    const sub=suma(del);
     return `<div class="grupo-cab"><div class="eyebrow">${g[0]}</div>
-      <div class="gk">${miles(sub)} kcal</div></div>`+
+      <div class="gk">${miles(sub.kcal)} kcal · P${r0(sub.p)} C${r0(sub.c)} G${r0(sub.g)} F${r0(sub.f)}</div></div>`+
       del.map(c=>{
         const img=c.thumb?`<img class="thumb" src="${c.thumb}" alt="">`
           :`<div class="sinfoto">${esc((c.nom||"?").charAt(0).toUpperCase())}</div>`;
+        const baseC=porcionDe(c.nom)||c.gramos;
         const cant = c.gramos>0
           ? `<span class="cant"><input class="lg" type="number" inputmode="decimal" value="${r0(c.gramos)}"
-              onchange="cambiarGramosComida('${c.id}',this.value)" aria-label="Gramos"> g
-             <button class="paso" onclick="pasoPorcionComida('${c.id}',-1)" aria-label="Una porción menos">&minus;</button><button
-             class="paso" onclick="pasoPorcionComida('${c.id}',1)" aria-label="Una porción más">+</button></span>`
+              onchange="cambiarGramosComida('${c.id}',this.value)" aria-label="Gramos"> g ·
+             <button class="paso" onclick="pasoPorcionComida('${c.id}',-1)" aria-label="Una porción menos">&minus;</button><input
+             class="lg lp" type="number" inputmode="decimal" step="0.5" value="${r1(c.gramos/baseC)}"
+             onchange="cambiarPorcComida('${c.id}',this.value)" aria-label="Porciones"><button
+             class="paso" onclick="pasoPorcionComida('${c.id}',1)" aria-label="Una porción más">+</button> porc</span>`
           : `<span class="cant">${r0(c.gramos)} g</span>`;
         return `<div class="item">${img}<div class="cuerpo">
           <div class="nom">${esc(c.nom)}</div>
@@ -1107,6 +1111,13 @@ function pasoPorcionComida(id,dir){
   const base=porcionDe(c.nom)||c.gramos;
   const nuevo=Math.round(c.gramos+dir*base);
   if(nuevo<=0){aviso("Quedaría en 0 g, mejor bórrala con la ×");return;}
+  cambiarGramosComida(id,nuevo);
+}
+function cambiarPorcComida(id,v){
+  const c=DB.comidas.find(x=>x.id===id); if(!c||!c.gramos)return;
+  const base=porcionDe(c.nom)||c.gramos;
+  const nuevo=Math.round((parseFloat(String(v).replace(",","."))||0)*base);
+  if(nuevo<=0){pintarHoy();return;}
   cambiarGramosComida(id,nuevo);
 }
 /* anillo del día: se llena con lo comido, teñido por el aporte calórico de cada macro.
@@ -1835,9 +1846,11 @@ function pintarLineas(){
         <div class="ld">${l.hora?`<input class="hora-item" type="time" value="${esc(l.hora)}"
             onchange="cambiarHoraLinea(${i},this.value)" aria-label="Hora"> · `:""}<span class="cant"><input class="lg"
           type="number" inputmode="decimal" value="${r0(l.porcion_g)}"
-          oninput="cambiarGramos(${i},this.value)" aria-label="Gramos"> g
-          <button class="paso" onclick="pasoPorcion(${i},-1)" aria-label="Una porción menos">&minus;</button><button
-          class="paso" onclick="pasoPorcion(${i},1)" aria-label="Una porción más">+</button></span>
+          oninput="cambiarGramos(${i},this.value)" aria-label="Gramos"> g ·
+          <button class="paso" onclick="pasoPorcion(${i},-1)" aria-label="Una porción menos">&minus;</button><input
+          class="lg lp" type="number" inputmode="decimal" step="0.5" value="${r1(l.porcion_g/basePorcion(l))}"
+          oninput="cambiarPorciones(${i},this.value)" aria-label="Porciones"><button
+          class="paso" onclick="pasoPorcion(${i},1)" aria-label="Una porción más">+</button> porc</span>
           · <span class="ld-m">P${r0(v.p)} C${r0(v.c)} G${r0(v.g)} F${r0(v.f)}</span>${marca}</div>
       </div>
       <div class="lk">${r0(v.kcal)}<small>KCAL</small></div>
@@ -1865,7 +1878,22 @@ function refrescarLinea(i){
   pintarTotales();
 }
 function alternarLinea(i){lineas[i].incluir=!lineas[i].incluir;pintarLineas();}
-function cambiarGramos(i,v){lineas[i].porcion_g=Math.max(0,parseFloat(v)||0);refrescarLinea(i);}
+/* la porción de una línea: la de la despensa si existe, si no la del análisis */
+function basePorcion(l){return porcionDe(l.nombre)||l.base_g||100;}
+function cambiarGramos(i,v){
+  const l=lineas[i];
+  l.porcion_g=Math.max(0,parseFloat(v)||0);
+  const fila=$("res-lineas").children[i];
+  const lp=fila&&fila.querySelector(".lp"); if(lp)lp.value=r1(l.porcion_g/basePorcion(l));
+  refrescarLinea(i);
+}
+function cambiarPorciones(i,v){
+  const l=lineas[i];
+  l.porcion_g=Math.max(0,Math.round((parseFloat(String(v).replace(",","."))||0)*basePorcion(l)));
+  const fila=$("res-lineas").children[i];
+  const lg=fila&&fila.querySelector(".lg:not(.lp)"); if(lg)lg.value=r0(l.porcion_g);
+  refrescarLinea(i);
+}
 /* porción oficial de un producto: los gramos guardados en la despensa */
 function porcionDe(nombre){
   const n=normalizar(nombre||""); if(!n)return 0;
@@ -1873,11 +1901,12 @@ function porcionDe(nombre){
   return a ? (a.gramos||100) : 0;
 }
 function pasoPorcion(i,dir){
-  const l=lineas[i], base=porcionDe(l.nombre)||l.base_g||100;
+  const l=lineas[i], base=basePorcion(l);
   const nuevo=Math.max(0,Math.round(l.porcion_g+dir*base));
   l.porcion_g=nuevo;
   const fila=$("res-lineas").children[i];
-  const g=fila&&fila.querySelector(".lg"); if(g)g.value=nuevo;
+  const g=fila&&fila.querySelector(".lg:not(.lp)"); if(g)g.value=nuevo;
+  const lp=fila&&fila.querySelector(".lp"); if(lp)lp.value=r1(nuevo/base);
   refrescarLinea(i);
 }
 function quitarLinea(i){lineas.splice(i,1);pintarLineas();}

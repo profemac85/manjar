@@ -365,6 +365,8 @@ svg.gr text{font-family:var(--mono);font-size:9px;fill:var(--humo)}
   background:var(--sandia);color:#fff;font-family:var(--display);text-transform:uppercase;
   letter-spacing:.1em;font-size:10px;font-weight:600}
 .act-row{position:relative;z-index:1;transition:transform .18s ease;margin-bottom:0}
+.pasos{margin:6px 0 12px;padding-left:20px;font-size:13px;line-height:1.65;color:var(--hueso)}
+.pasos li{margin-bottom:6px}
 .chip-receta{display:inline-block;font-family:var(--display);text-transform:uppercase;letter-spacing:.1em;
   font-size:8.5px;padding:2px 7px;border-radius:99px;border:1px solid var(--manjar);color:var(--manjar);margin-left:6px}
 .acciones-item{display:flex;gap:6px;flex:0 0 auto}
@@ -714,6 +716,10 @@ hr.sep{border:0;border-top:1px solid var(--linea);margin:22px 0}
 <section class="vista" id="v-despensa">
   <div class="topbar"><h1>Despensa</h1><div class="fecha" id="despensa-info"></div></div>
 
+  <div class="segmento" style="margin-bottom:10px">
+    <button class="on" data-df="todo" onclick="filtrarDespensa('todo')">Todo</button>
+    <button data-df="recetas" onclick="filtrarDespensa('recetas')">Recetas</button>
+  </div>
   <input class="txt" id="desp-buscar" placeholder="Buscar en tus productos" oninput="pintarDespensaVista()" style="margin-bottom:10px">
   <button class="btn fantasma" onclick="abrirReceta()">Nueva receta</button>
 
@@ -744,6 +750,8 @@ hr.sep{border:0;border-top:1px solid var(--linea);margin:22px 0}
         <label class="campo"><span>Peso final cocido (g)</span><input class="txt mono" id="rec-rend" type="number" inputmode="decimal" placeholder="suma cruda" oninput="pintarResumenReceta()"></label>
         <label class="campo"><span>Porción habitual (g)</span><input class="txt mono" id="rec-porcion" type="number" inputmode="decimal" placeholder="100"></label>
       </div>
+      <label class="campo"><span>Preparación (un paso por línea)</span>
+        <textarea class="txt" id="rec-pasos" style="min-height:100px" placeholder="Mezclar los secos&#10;Sumar el yogurt y batir&#10;Hornear 35 min a 180°"></textarea></label>
       <button class="btn" onclick="guardarReceta()">Guardar receta</button>
       <button class="btn fantasma" onclick="cerrarReceta()">Cancelar</button>
     </div>
@@ -1410,7 +1418,7 @@ function extraerJSON(txt){
     return null;
   };
   // primero el envoltorio, de afuera hacia adentro, para no quedarse con un objeto anidado
-  return intentar(abiertas, o=>Array.isArray(o.comidas)||Array.isArray(o.items))
+  return intentar(abiertas, o=>Array.isArray(o.comidas)||Array.isArray(o.items)||(o.receta&&typeof o.receta==="object"))
       || intentar(abiertas.slice().reverse(), o=>("kcal_100g" in o)||("nombre" in o));
 }
 function revisarKey(){
@@ -1602,19 +1610,26 @@ function guardarEnDespensa(nom,g,l){
     fibra_100g:l.fibra_100g||0,codigo:l.codigo||undefined});
 }
 /* ================= vista despensa ================= */
-let editandoAlim=null;
+let editandoAlim=null, fichaReceta=null, despFiltro="todo";
+function filtrarDespensa(f){
+  despFiltro=f;
+  document.querySelectorAll("#v-despensa .segmento button").forEach(b=>b.classList.toggle("on",b.dataset.df===f));
+  pintarDespensaVista();
+}
 function pintarDespensaVista(){
   const q=$("desp-buscar").value.trim();
   const todos=DB.alimentos.slice().sort((a,b)=>(b.usos||0)-(a.usos||0));
-  const res=q.length>1 ? buscarDespensa(q,999) : todos;
+  let res=q.length>1 ? buscarDespensa(q,999) : todos;
+  if(despFiltro==="recetas") res=res.filter(a=>a.receta);
   const n=DB.alimentos.length;
   $("despensa-info").textContent = n ? n+(n===1?" producto":" productos") : "vacía";
   $("despensa-lista").innerHTML = !res.length
-    ? `<div class="vacio">${n?"Nada calza con la búsqueda.":"Vacía. Cada comida que confirmes se guarda acá."}</div>`
+    ? `<div class="vacio">${despFiltro==="recetas"?"Sin recetas todavía. Créala con el botón de arriba o pégala desde Claude.":(n?"Nada calza con la búsqueda.":"Vacía. Cada comida que confirmes se guarda acá.")}</div>`
     : res.map(a=>{
-      const fila=`<div class="item" style="${editandoAlim===a.id?"margin-bottom:0;border-radius:14px 14px 0 0":""}">
+      const abierto=editandoAlim===a.id||fichaReceta===a.id;
+      const fila=`<div class="item" style="${abierto?"margin-bottom:0;border-radius:14px 14px 0 0":""}">
         <div class="sinfoto">${a.usos||1}</div>
-        <div class="cuerpo" onclick="editarAlimento('${a.id}')">
+        <div class="cuerpo" onclick="${a.receta?`abrirFicha('${a.id}')`:`editarAlimento('${a.id}')`}">
           <div class="nom">${esc(a.nom)}${a.receta?'<span class="chip-receta">receta</span>':""}</div>
           <div class="det">${r0(a.kcal_100g)} kcal/100g · porción ${r0(a.gramos||100)} g · P${r1(a.prot_100g)} C${r1(a.carb_100g)} G${r1(a.gras_100g)} F${r1(a.fibra_100g||0)}</div>
         </div>
@@ -1642,10 +1657,32 @@ function pintarDespensaVista(){
         <button class="btn" style="padding:12px" onclick="guardarAlimento('${a.id}')">Guardar cambios</button>
         <button class="btn fantasma" style="padding:12px" onclick="editandoAlim=null;pintarDespensaVista()">Cerrar</button>
       </div>`;
-      return `<div style="margin-bottom:8px">${fila}${editor}</div>`;
+      const ficha = fichaReceta!==a.id||!a.receta ? "" : fichaHTML(a);
+      return `<div style="margin-bottom:8px">${fila}${editor}${ficha}</div>`;
     }).join("");
 }
-function editarAlimento(id){ editandoAlim = editandoAlim===id ? null : id; pintarDespensaVista(); }
+/* la ficha de consulta de una receta: macros por porción y totales, ingredientes y pasos */
+function fichaHTML(a){
+  const rc=a.receta, porc=a.gramos||100;
+  const por=f=>r0((a[f]||0)*porc/100), tot=f=>r0((a[f]||0)*(rc.rend||0)/100);
+  const nPorc=rc.rend&&porc ? Math.round(rc.rend/porc*10)/10 : 0;
+  return `<div class="form-inline" style="border-radius:0 0 14px 14px;margin-top:0">
+    <div class="eyebrow" style="margin-bottom:4px">Por porción de ${r0(porc)} g</div>
+    <div class="mono" style="font-size:13px;margin-bottom:10px"><b>${por("kcal_100g")} kcal</b> · P${por("prot_100g")} C${por("carb_100g")} G${por("gras_100g")} F${por("fibra_100g")}</div>
+    <div class="eyebrow" style="margin-bottom:4px">Receta completa</div>
+    <div class="mono" style="font-size:12px;color:var(--humo);margin-bottom:10px">rinde ${r0(rc.rend)} g${nPorc?` (${nPorc} porciones)`:""} · ${tot("kcal_100g")} kcal · P${tot("prot_100g")} C${tot("carb_100g")} G${tot("gras_100g")} F${tot("fibra_100g")}</div>
+    <div class="eyebrow" style="margin-bottom:4px">Ingredientes</div>
+    <div class="mono" style="font-size:12px;line-height:1.8;margin-bottom:10px">
+      ${rc.ings.map(x=>esc(x.nom)+" · "+r0(x.gramos)+" g").join("<br>")}</div>
+    ${rc.pasos&&rc.pasos.length?`<div class="eyebrow" style="margin-bottom:4px">Preparación</div>
+    <ol class="pasos">${rc.pasos.map(x=>`<li>${esc(x)}</li>`).join("")}</ol>`:""}
+    <button class="btn" style="padding:12px" onclick="agregarDeDespensa('${a.id}')">Registrar una porción hoy</button>
+    <button class="btn fantasma" style="padding:12px" onclick="editarReceta('${a.id}')">Editar receta</button>
+    <button class="btn fantasma" style="padding:12px" onclick="fichaReceta=null;pintarDespensaVista()">Cerrar</button>
+  </div>`;
+}
+function abrirFicha(id){ fichaReceta = fichaReceta===id ? null : id; editandoAlim=null; pintarDespensaVista(); }
+function editarAlimento(id){ editandoAlim = editandoAlim===id ? null : id; fichaReceta=null; pintarDespensaVista(); }
 function guardarAlimento(id){
   const a=DB.alimentos.find(x=>x.id===id); if(!a)return;
   a.nom=$("ea-nom").value.trim()||a.nom;
@@ -1682,7 +1719,7 @@ let recIngs=[], editandoReceta=null;
 function abrirReceta(){
   recIngs=[]; editandoReceta=null;
   $("receta-tit").textContent="Nueva receta";
-  $("rec-nom").value="";$("rec-rend").value="";$("rec-porcion").value="";
+  $("rec-nom").value="";$("rec-rend").value="";$("rec-porcion").value="";$("rec-pasos").value="";
   $("rec-buscar").value="";$("sugs-rec").innerHTML="";$("ing-manual").style.display="none";
   $("receta-form").style.display="";
   pintarIngs();
@@ -1697,6 +1734,7 @@ function editarReceta(id){
   $("rec-nom").value=a.nom;
   $("rec-rend").value=r0(a.receta.rend);
   $("rec-porcion").value=r0(a.gramos||100);
+  $("rec-pasos").value=(a.receta.pasos||[]).join("\n");
   recIngs=a.receta.ings.map(x=>({...x}));
   pintarIngs();
 }
@@ -1758,6 +1796,33 @@ function pintarResumenReceta(){
   $("rec-resumen").textContent=
     `Total: ${r0(c.total.kcal)} kcal · rinde ${r0(c.rend)} g → ${r0(c.kcal_100g)} kcal/100g · P${r1(c.prot_100g)} C${r1(c.carb_100g)} G${r1(c.gras_100g)} F${r1(c.fibra_100g)}`;
 }
+/* receta pegada desde la skill de Claude: valida, calcula por 100 g y guarda en despensa */
+function guardarRecetaPegada(rj){
+  const nombre=String(rj.nombre||"").trim();
+  const src=Array.isArray(rj.ingredientes)?rj.ingredientes:[];
+  const ings=src.map(x=>({nom:String(x.nombre||x.nom||"Ingrediente").trim(),
+    gramos:parseFloat(x.gramos)||0,kcal_100g:parseFloat(x.kcal_100g)||0,
+    prot_100g:parseFloat(x.prot_100g)||0,carb_100g:parseFloat(x.carb_100g)||0,
+    gras_100g:parseFloat(x.gras_100g)||0,fibra_100g:parseFloat(x.fibra_100g)||0}))
+    .filter(x=>x.gramos>0);
+  if(!nombre||!ings.length){
+    $("estado-pegado").innerHTML=`<div class="aviso">La receta venía sin nombre o sin ingredientes con gramos.</div>`;
+    return null;
+  }
+  const c=calcularReceta(ings,parseFloat(rj.rinde_g)||0);
+  const porcion=parseFloat(rj.porcion_g)||100;
+  const pasos=Array.isArray(rj.pasos)?rj.pasos.map(x=>String(x).trim()).filter(Boolean):[];
+  const nn=normalizar(nombre);
+  let a=DB.alimentos.find(x=>normalizar(x.nom)===nn);
+  if(!a){ a={id:"r"+Date.now(),nom:nombre,usos:1,ultimo:Date.now()}; DB.alimentos.push(a); }
+  a.nom=nombre; a.gramos=porcion; a.ultimo=Date.now();
+  a.kcal_100g=c.kcal_100g; a.prot_100g=c.prot_100g; a.carb_100g=c.carb_100g;
+  a.gras_100g=c.gras_100g; a.fibra_100g=c.fibra_100g;
+  a.receta={rend:c.rend,ings,pasos};
+  grabar();
+  aviso("Receta guardada: "+nombre);
+  return a;
+}
 function guardarReceta(){
   const nom=$("rec-nom").value.trim();
   if(!nom){aviso("Ponle nombre a la receta");return;}
@@ -1773,7 +1838,8 @@ function guardarReceta(){
   a.nom=nom; a.gramos=porcion;
   a.kcal_100g=c.kcal_100g; a.prot_100g=c.prot_100g; a.carb_100g=c.carb_100g;
   a.gras_100g=c.gras_100g; a.fibra_100g=c.fibra_100g;
-  a.receta={rend:c.rend,ings:recIngs.map(x=>({...x}))};
+  a.receta={rend:c.rend,ings:recIngs.map(x=>({...x})),
+    pasos:$("rec-pasos").value.split("\n").map(x=>x.trim()).filter(Boolean)};
   grabar(); cerrarReceta(); pintarDespensaVista();
   aviso(editandoReceta?"Receta actualizada":"Receta guardada");
 }
@@ -1835,11 +1901,19 @@ function leerPegado(){
       Copia la respuesta completa de Claude, incluidas las llaves.</div>`;
     return;
   }
+  if(j.receta&&typeof j.receta==="object"){
+    const a=guardarRecetaPegada(j.receta);
+    if(!a)return;
+    $("estado-pegado").innerHTML=""; $("tx-pegado").value="";
+    fichaReceta=a.id; despFiltro="todo";
+    irA("despensa");
+    return;
+  }
   const items = Array.isArray(j.comidas) ? j.comidas
               : Array.isArray(j.items) ? j.items
               : (j.nombre ? [j] : []);
   if(!items.length){
-    $("estado-pegado").innerHTML=`<div class="aviso">El bloque no traía comidas.</div>`;
+    $("estado-pegado").innerHTML=`<div class="aviso">El bloque no traía comidas ni receta.</div>`;
     return;
   }
   despensaPendiente = Array.isArray(j.despensa) ? j.despensa : null;

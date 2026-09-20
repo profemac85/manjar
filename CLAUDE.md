@@ -141,10 +141,13 @@ macro.
   son totales sobre los días reales del período; promedios solo sobre días con registro.
 - **DESPENSA.** Quinta pestaña (la barra quedó Hoy, Datos, +, Despensa, Perfil). Buscador sobre todos los productos, "+ hoy" (abre el desglose
   editable en CAPTURA con la porción guardada precargada), edición inline (nombre, porción,
-  valores por 100 g incluida fibra) y eliminación con Deshacer. Recetas: un alimento con
-  `receta:{rend, ings}` guarda el snapshot de ingredientes y el rendimiento cocido;
-  `calcularReceta()` deriva los valores por 100 g del producto terminado. Se registra
-  consumo en gramos del terminado por el flujo normal.
+  valores por 100 g incluida fibra) y eliminación con Deshacer. Secciones Todo | Recetas
+  (`despFiltro`). Recetas: un alimento con `receta:{rend, ings, pasos}` guarda ingredientes,
+  rendimiento cocido y la preparación; `calcularReceta()` deriva los valores por 100 g del
+  terminado. Tocar una receta abre su FICHA de consulta (`fichaHTML`): macros por porción y
+  de la receta completa, ingredientes, pasos numerados, y botones de registrar porción y
+  editar (los productos normales abren su editor). Se registra consumo en gramos del
+  terminado por el flujo normal.
 - **PERFIL.** Mifflin-St Jeor para BMR y TDEE, o Katch-McArdle sobre la masa magra si el
   % de grasa corporal (opcional) está entre 3 y 70. Proteína 1.8 g/kg, grasa 0.8 g/kg, piso
   de 1500/1200 kcal. Meta de fibra configurable (30 g por defecto). Interruptor "sumar lo quemado a la meta" (si está activo, la actividad base
@@ -220,6 +223,11 @@ se va desfasando, y eso está aceptado: cada vuelta del ciclo las vuelve a acerc
    alimentos nuevos o corregidos).
 4. Max lo pega en la app, revisa en el desglose editable y guarda. La despensa se actualiza
    sola con `aplicarDespensaPendiente()`.
+
+La pestaña Pegar acepta un segundo bloque: `{"receta":{nombre, porcion_g, rinde_g,
+ingredientes:[{nombre, gramos, *_100g}], pasos, nota}}`, que `guardarRecetaPegada()` valida,
+calcula y guarda en la despensa abriendo su ficha. Lo emite la skill `manjar-recetas`
+(skill/manjar-recetas/, separada de la de registro; se sube igual a claude.ai).
 
 `extraerJSON()` tolera prosa alrededor y backticks. **Ojo:** busca primero el objeto
 envoltorio de afuera hacia adentro, y solo después cae a objetos sueltos. Si se invierte ese

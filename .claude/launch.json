@@ -1,6 +1,34 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "manjar", "url": "http://localhost:8123", "port": 8123 }
+    {
+      "name": "manjar",
+      "url": "http://localhost:8123",
+      "port": 8123
+    },
+    {
+      "name": "fierro",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8124",
+        "--directory",
+        "fierro"
+      ],
+      "port": 8124
+    },
+    {
+      "name": "fierroli",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8125",
+        "--directory",
+        "fierr-oli"
+      ],
+      "port": 8125
+    }
   ]
 }
